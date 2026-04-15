@@ -1,0 +1,89 @@
+import subprocess
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+# ---------- ADB: Fetch EID ----------
+def get_eid_from_phone():
+    try:
+        output = subprocess.check_output(
+            ["adb", "shell", "getprop"],
+            stderr=subprocess.STDOUT
+        ).decode()
+
+        # Try to find EID in system properties
+        for line in output.split("\n"):
+            if "eid" in line.lower():
+                return line.split("]: [")[-1].replace("]", "").strip()
+
+        return "EID Not Found"
+
+    except Exception as e:
+        return "ADB Error"
+
+# ---------- Compare Logic ----------
+def compare_eid():
+    box_eid = entry_box.get().strip()
+
+    if not box_eid:
+        messagebox.showwarning("Input Error", "Please enter Box EID")
+        return
+
+    phone_eid = get_eid_from_phone()
+    label_phone_value.config(text=phone_eid)
+
+    if phone_eid in ["ADB Error", "EID Not Found"]:
+        result_label.config(text="❌ Unable to fetch EID", foreground="red")
+        return
+
+    if box_eid == phone_eid:
+        result_label.config(text="✅ PASS", foreground="green")
+    else:
+        result_label.config(text="❌ FAIL", foreground="red")
+
+# ---------- Clear ----------
+def clear_fields():
+    entry_box.delete(0, tk.END)
+    label_phone_value.config(text="---")
+    result_label.config(text="")
+
+# ---------- UI ----------
+root = tk.Tk()
+root.title("EID Verification System")
+root.geometry("500x350")
+root.resizable(False, False)
+
+# Style
+style = ttk.Style()
+style.configure("TButton", font=("Segoe UI", 10), padding=6)
+style.configure("TLabel", font=("Segoe UI", 10))
+
+# Title
+title = ttk.Label(root, text="EID Verification Tool", font=("Segoe UI", 16, "bold"))
+title.pack(pady=15)
+
+# Frame
+frame = ttk.Frame(root, padding=20)
+frame.pack(fill="both", expand=True)
+
+# Box EID
+ttk.Label(frame, text="Enter Box EID:").grid(row=0, column=0, sticky="w", pady=5)
+entry_box = ttk.Entry(frame, width=40)
+entry_box.grid(row=0, column=1, pady=5)
+
+# Phone EID Display
+ttk.Label(frame, text="Phone EID:").grid(row=1, column=0, sticky="w", pady=5)
+label_phone_value = ttk.Label(frame, text="---", foreground="blue")
+label_phone_value.grid(row=1, column=1, pady=5)
+
+# Buttons
+btn_frame = ttk.Frame(frame)
+btn_frame.grid(row=2, column=0, columnspan=2, pady=15)
+
+ttk.Button(btn_frame, text="Fetch & Compare", command=compare_eid).grid(row=0, column=0, padx=10)
+ttk.Button(btn_frame, text="Clear", command=clear_fields).grid(row=0, column=1, padx=10)
+
+# Result
+result_label = ttk.Label(root, text="", font=("Segoe UI", 14, "bold"))
+result_label.pack(pady=20)
+
+root.mainloop()
