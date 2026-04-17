@@ -1,0 +1,109 @@
+import subprocess
+import tkinter as tk
+from tkinter import ttk, messagebox
+from PIL import Image
+import pytesseract
+import time
+import re
+
+# 🔧 Set tesseract path if needed (Windows example)
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# ---------- Open About Phone ----------
+def open_about_phone():
+    subprocess.call(["adb", "shell", "am", "start", "-a", "android.settings.DEVICE_INFO_SETTINGS"])
+    time.sleep(3)  # wait for screen to load
+
+# ---------- Take Screenshot ----------
+def capture_screen():
+    subprocess.call(["adb", "shell", "screencap", "/sdcard/screen.png"])
+    subprocess.call(["adb", "pull", "/sdcard/screen.png", "screen.png"])
+
+# ---------- Extract EID using OCR ----------
+def extract_eid_from_image():
+    try:
+        img = Image.open("screen.png")
+        text = pytesseract.image_to_string(img)
+
+        # Try to find EID pattern (numbers usually long)
+        match = re.search(r'\b\d{20,}\b', text)
+        if match:
+            return match.group(0)
+
+        return "EID Not Found"
+
+    except:
+        return "OCR Error"
+
+# ---------- Main Process ----------
+def fetch_and_compare():
+    box_eid = entry_box.get().strip()
+
+    if not box_eid:
+        messagebox.showwarning("Input Error", "Enter Box EID")
+        return
+
+    status_label.config(text="⏳ Fetching from phone...", foreground="blue")
+    root.update()
+
+    open_about_phone()
+    capture_screen()
+    phone_eid = extract_eid_from_image()
+
+    label_phone_value.config(text=phone_eid)
+
+    if phone_eid in ["EID Not Found", "OCR Error"]:
+        result_label.config(text="❌ Failed to fetch EID", foreground="red")
+        return
+
+    if box_eid == phone_eid:
+        result_label.config(text="✅ PASS", foreground="green")
+    else:
+        result_label.config(text="❌ FAIL", foreground="red")
+
+    status_label.config(text="Done", foreground="black")
+
+# ---------- Clear ----------
+def clear_fields():
+    entry_box.delete(0, tk.END)
+    label_phone_value.config(text="---")
+    result_label.config(text="")
+    status_label.config(text="")
+
+# ---------- GUI ----------
+root = tk.Tk()
+root.title("EID Verification Tool (ADB + OCR)")
+root.geometry("520x380")
+
+title = ttk.Label(root, text="EID Verification System", font=("Segoe UI", 16, "bold"))
+title.pack(pady=15)
+
+frame = ttk.Frame(root, padding=20)
+frame.pack()
+
+# Box EID
+ttk.Label(frame, text="Enter Box EID:").grid(row=0, column=0, pady=5)
+entry_box = ttk.Entry(frame, width=40)
+entry_box.grid(row=0, column=1, pady=5)
+
+# Phone EID
+ttk.Label(frame, text="Phone EID:").grid(row=1, column=0, pady=5)
+label_phone_value = ttk.Label(frame, text="---", foreground="blue")
+label_phone_value.grid(row=1, column=1, pady=5)
+
+# Buttons
+btn_frame = ttk.Frame(frame)
+btn_frame.grid(row=2, column=0, columnspan=2, pady=15)
+
+ttk.Button(btn_frame, text="Fetch & Compare", command=fetch_and_compare).grid(row=0, column=0, padx=10)
+ttk.Button(btn_frame, text="Clear", command=clear_fields).grid(row=0, column=1, padx=10)
+
+# Status
+status_label = ttk.Label(root, text="", font=("Segoe UI", 10))
+status_label.pack()
+
+# Result
+result_label = ttk.Label(root, text="", font=("Segoe UI", 14, "bold"))
+result_label.pack(pady=20)
+
+root.mainloop()
