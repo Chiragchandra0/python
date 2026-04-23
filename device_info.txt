@@ -1,0 +1,54 @@
+def load_device_info():
+    tree.delete(*tree.get_children())
+
+    try:
+        # -------- Basic Info --------
+        serial = subprocess.check_output([ADB, "get-serialno"]).decode().strip()
+
+        props = subprocess.check_output([ADB, "shell", "getprop"]).decode()
+
+        model = ""
+        android_version = ""
+        brand = ""
+
+        for line in props.split("\n"):
+            if "ro.product.model" in line:
+                model = line.split("]: [")[-1].replace("]", "")
+            elif "ro.build.version.release" in line:
+                android_version = line.split("]: [")[-1].replace("]", "")
+            elif "ro.product.brand" in line:
+                brand = line.split("]: [")[-1].replace("]", "")
+
+        # -------- Battery --------
+        battery_output = subprocess.check_output([ADB, "shell", "dumpsys", "battery"]).decode()
+        battery_level = ""
+        for line in battery_output.split("\n"):
+            if "level" in line:
+                battery_level = line.split(":")[-1].strip()
+
+        # -------- WiFi MAC --------
+        wifi_mac = subprocess.check_output(
+            [ADB, "shell", "cat", "/sys/class/net/wlan0/address"]
+        ).decode().strip()
+
+        # -------- Bluetooth MAC --------
+        bt_mac = subprocess.check_output(
+            [ADB, "shell", "settings", "get", "secure", "bluetooth_address"]
+        ).decode().strip()
+
+        # -------- Insert into Table --------
+        data = [
+            ("Serial No", serial),
+            ("Brand", brand),
+            ("Model", model),
+            ("Android Version", android_version),
+            ("Battery %", battery_level),
+            ("WiFi MAC", wifi_mac),
+            ("Bluetooth MAC", bt_mac),
+        ]
+
+        for item in data:
+            tree.insert("", "end", values=item)
+
+    except Exception as e:
+        tree.insert("", "end", values=("Error", "Device not connected"))
