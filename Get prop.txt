@@ -1,0 +1,66 @@
+def load_device_info():
+    tree.delete(*tree.get_children())
+
+    try:
+        # -------- Basic Info (direct queries) --------
+        serial = subprocess.check_output([ADB, "get-serialno"]).decode().strip()
+
+        model = subprocess.check_output(
+            [ADB, "shell", "getprop", "ro.product.model"]
+        ).decode().strip()
+
+        brand = subprocess.check_output(
+            [ADB, "shell", "getprop", "ro.product.brand"]
+        ).decode().strip()
+
+        android_version = subprocess.check_output(
+            [ADB, "shell", "getprop", "ro.build.version.release"]
+        ).decode().strip()
+
+        # -------- Battery --------
+        battery_output = subprocess.check_output(
+            [ADB, "shell", "dumpsys", "battery"]
+        ).decode()
+
+        battery_level = ""
+        for line in battery_output.split("\n"):
+            if "level" in line:
+                battery_level = line.split(":")[-1].strip()
+
+        # -------- WiFi MAC (new Android fix) --------
+        try:
+            wifi_mac = subprocess.check_output(
+                [ADB, "shell", "ip", "addr", "show", "wlan0"]
+            ).decode()
+
+            for line in wifi_mac.split("\n"):
+                if "link/ether" in line:
+                    wifi_mac = line.split()[1]
+                    break
+        except:
+            wifi_mac = "Unavailable"
+
+        # -------- Bluetooth MAC --------
+        try:
+            bt_mac = subprocess.check_output(
+                [ADB, "shell", "settings", "get", "secure", "bluetooth_address"]
+            ).decode().strip()
+        except:
+            bt_mac = "Unavailable"
+
+        # -------- Insert into Table --------
+        data = [
+            ("Serial No", serial),
+            ("Brand", brand),
+            ("Model", model),
+            ("Android Version", android_version),
+            ("Battery %", battery_level + "%"),
+            ("WiFi MAC", wifi_mac),
+            ("Bluetooth MAC", bt_mac),
+        ]
+
+        for item in data:
+            tree.insert("", "end", values=item)
+
+    except Exception as e:
+        tree.insert("", "end", values=("Error", str(e)))
