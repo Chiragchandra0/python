@@ -1,54 +1,819 @@
-def load_device_info():
-    tree.delete(*tree.get_children())
+Here’s a **clear, up-to-date breakdown (May 2026)** of what’s happening globally in AI — including **major news, trends, and real pros/cons emerging right now**.
 
-    try:
-        # -------- Basic Info --------
-        serial = subprocess.check_output([ADB, "get-serialno"]).decode().strip()
+---
 
-        props = subprocess.check_output([ADB, "shell", "getprop"]).decode()
+# 🧠 Latest AI News (Global – 2026)
 
-        model = ""
-        android_version = ""
-        brand = ""
+* [TechRadar](https://www.techradar.com/ai-platforms-assistants/ai-did-what-chatgpts-big-upgrade-googles-plans-to-make-ai-invisible-deepseeks-return-and-more-of-the-weeks-most-surprising-developments?utm_source=chatgpt.com)
+* [The Guardian](https://www.theguardian.com/technology/2026/apr/28/google-classified-ai-deal-pentagon?utm_source=chatgpt.com)
+* [Reuters](https://www.reuters.com/sustainability/boards-policy-regulation/eu-countries-lawmakers-fail-reach-deal-watered-down-ai-rules-2026-04-29/?utm_source=chatgpt.com)
+* [The Wall Street Journal](https://www.wsj.com/tech/eu-tells-google-to-open-android-to-ai-rivals-ed69da9c?utm_source=chatgpt.com)
+* [The Washington Post](https://www.washingtonpost.com/world/2026/04/27/china-ai-meta-manus/?utm_source=chatgpt.com)
+* [EW.com](https://ew.com/new-oscars-rule-changes-battle-ai-acting-categories-tweak-11963836?utm_source=chatgpt.com)
 
-        for line in props.split("\n"):
-            if "ro.product.model" in line:
-                model = line.split("]: [")[-1].replace("]", "")
-            elif "ro.build.version.release" in line:
-                android_version = line.split("]: [")[-1].replace("]", "")
-            elif "ro.product.brand" in line:
-                brand = line.split("]: [")[-1].replace("]", "")
+## 1. AI is becoming a “super system” (not just a tool)
 
-        # -------- Battery --------
-        battery_output = subprocess.check_output([ADB, "shell", "dumpsys", "battery"]).decode()
-        battery_level = ""
-        for line in battery_output.split("\n"):
-            if "level" in line:
-                battery_level = line.split(":")[-1].strip()
+* New models like **GPT-5.5** are shifting AI from chatbot → **autonomous agent systems** that can execute tasks end-to-end. ([TechRadar][1])
+* Companies are building AI that:
 
-        # -------- WiFi MAC --------
-        wifi_mac = subprocess.check_output(
-            [ADB, "shell", "cat", "/sys/class/net/wlan0/address"]
-        ).decode().strip()
+  * controls apps
+  * writes code
+  * completes workflows without constant input
 
-        # -------- Bluetooth MAC --------
-        bt_mac = subprocess.check_output(
-            [ADB, "shell", "settings", "get", "secure", "bluetooth_address"]
-        ).decode().strip()
+👉 This marks the shift to an **“agent-driven economy”**.
 
-        # -------- Insert into Table --------
-        data = [
-            ("Serial No", serial),
-            ("Brand", brand),
-            ("Model", model),
-            ("Android Version", android_version),
-            ("Battery %", battery_level),
-            ("WiFi MAC", wifi_mac),
-            ("Bluetooth MAC", bt_mac),
-        ]
+---
 
-        for item in data:
-            tree.insert("", "end", values=item)
+## 2. AI is deeply entering military & national security
 
-    except Exception as e:
-        tree.insert("", "end", values=("Error", "Device not connected"))
+* A major deal allows Google AI to be used by the Pentagon for:
+
+  * mission planning
+  * intelligence
+  * targeting (with restrictions) ([The Guardian][2])
+
+⚠️ Internal backlash:
+
+* Employees protested due to ethical concerns (warfare use of AI).
+
+---
+
+## 3. Global AI race is intensifying (US vs China vs others)
+
+* China blocked Meta’s AI acquisition to **protect domestic AI tech** ([The Washington Post][3])
+* Chinese companies (like DeepSeek) are building models **without Nvidia chips** ([TechRadar][1])
+
+👉 Result:
+**AI is now geopolitical infrastructure**, like oil or nuclear tech.
+
+---
+
+## 4. Governments are struggling to regulate AI
+
+* EU failed to finalize new AI rules due to disagreements ([Reuters][4])
+* EU also pushing Google to **open Android to competing AI systems** ([The Wall Street Journal][5])
+
+Globally:
+
+* 70+ countries working on AI laws
+* Regulations differ widely → fragmented ecosystem ([mindfoundry.ai][6])
+
+---
+
+## 5. AI is disrupting creative industries
+
+* Oscars introduced rules:
+
+  * Only **human-written scripts** allowed
+  * AI-generated performances restricted ([EW.com][7])
+
+👉 This shows fear of **AI replacing artists**
+
+---
+
+## 6. AI safety concerns are increasing
+
+* Experts warn about:
+
+  * deepfakes
+  * AI-assisted cyberattacks
+  * emotional dependence on AI companions ([The Guardian][8])
+
+* Even AI companies are **loosening safety commitments** to stay competitive ([TechRadar][9])
+
+---
+
+# ⚖️ Recently Observed PROS of AI
+
+## 🚀 1. Massive productivity boost
+
+* AI agents can:
+
+  * automate workflows
+  * write code
+  * run businesses tasks
+    👉 Leads to **faster execution + lower cost**
+
+---
+
+## 🧠 2. Better problem-solving capabilities
+
+* AI now helps in:
+
+  * medical research
+  * cybersecurity (finding vulnerabilities) ([Federal Reserve][10])
+  * engineering design
+
+---
+
+## 🌍 3. Accessibility & democratization
+
+* Multilingual AI (e.g., Indian models supporting 20+ languages) ([Wikipedia][11])
+  👉 More inclusive technology access
+
+---
+
+## ⚙️ 4. Automation at scale
+
+* Entire industries (marketing, support, coding) becoming:
+
+  * partially or fully automated
+
+---
+
+## 🧩 5. Integration into daily life
+
+* AI becoming invisible:
+
+  * works across apps
+  * anticipates tasks
+    👉 Next-gen UX shift (AI-first interfaces)
+
+---
+
+# ⚠️ Recently Observed CONS / RISKS
+
+## ☢️ 1. Military & misuse risks
+
+* AI used in:
+
+  * surveillance
+  * warfare
+    👉 Ethical concerns + escalation risks
+
+---
+
+## 🧪 2. Dangerous knowledge amplification
+
+* AI can assist in:
+
+  * cyberattacks
+  * biological threats ([The Guardian][8])
+
+---
+
+## 🎭 3. Deepfakes & misinformation
+
+* Hard to distinguish:
+
+  * real vs fake content
+    👉 Impacts elections, media, trust
+
+---
+
+## 🧠 4. Psychological & social impact
+
+* AI companions → emotional dependency
+* Risk of:
+
+  * isolation
+  * manipulation
+
+---
+
+## 💼 5. Job disruption (especially entry-level)
+
+* Early impact seen in:
+
+  * junior roles
+  * repetitive work ([The Guardian][8])
+
+---
+
+## ⚖️ 6. Lack of regulation & control
+
+* No global standard
+* Companies adjusting safety rules themselves
+  👉 “Move fast, regulate later” problem
+
+---
+
+## 🏁 7. Power concentration
+
+* AI dominated by:
+
+  * big tech
+  * governments
+    👉 Creates **control imbalance**
+
+---
+
+# 🧭 Big Picture (What this means)
+
+Right now, AI is going through **3 major shifts simultaneously**:
+
+### 1. Tool → Autonomous agent
+
+AI is no longer assisting — it's **acting**
+
+### 2. Innovation → Geopolitics
+
+AI is now a **global power competition**
+
+### 3. Experiment → Regulation battle
+
+Governments are trying (and struggling) to catch up
+
+---
+
+# 🔍 Bottom line
+
+* AI is advancing **faster than expected**
+* Benefits are huge (productivity, automation, innovation)
+* But risks are **system-level (society, security, truth, jobs)**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+You’re asking the right follow-up—this is exactly where things get practical. I’ll break it into **jobs → future → skills**, tailored to you (3rd-year student + freelance animator + learning dev/UI).
+
+---
+
+# 💼 1. AI Impact on Jobs (Realistically, not hype)
+
+## 🔻 What’s getting hit first
+
+These roles are already seeing pressure:
+
+* Entry-level coders (basic CRUD, templates)
+* Content writers / copywriters
+* Customer support agents
+* Junior graphic designers (logo/banner work)
+
+👉 Why: AI handles **repeatable + structured tasks** extremely well.
+
+---
+
+## 🔺 What’s actually growing
+
+Jobs aren’t disappearing—they’re **shifting upward**:
+
+* AI-assisted developers
+* Creative directors (not just designers)
+* UX/UI strategists
+* Automation specialists
+* Technical + creative hybrid roles
+
+👉 Translation:
+**Execution is cheap → Thinking is valuable**
+
+---
+
+## 🎯 Your situation (important)
+
+You’re in:
+
+* 🎬 Animation
+* 💻 Web dev
+* 🎨 UI/UX
+
+👉 This is actually a **strong position**, not weak.
+
+But only if you avoid this trap:
+
+❌ Just making designs
+❌ Just coding frontend
+❌ Just animating clips
+
+---
+
+### ✔️ What you SHOULD become
+
+A **“hybrid creator”**:
+
+* Design + motion + interaction + AI tools
+* Someone who builds **complete experiences**, not just assets
+
+👉 That’s hard to replace.
+
+---
+
+# 🔮 2. AI Future (Next 5 Years – No BS Prediction)
+
+## 📅 2026–2027
+
+* AI agents handle:
+
+  * coding projects
+  * client workflows
+* Freelancers using AI will **outperform others 5–10x**
+
+---
+
+## 📅 2027–2028
+
+* Most “basic” freelance gigs collapse in price
+* Companies hire fewer juniors
+* Demand shifts to:
+
+  * **AI supervisors**
+  * **system designers**
+
+---
+
+## 📅 2028–2030
+
+* AI becomes:
+
+  * invisible (runs in background)
+  * integrated in OS/apps
+
+* New job category:
+  👉 **“AI orchestrator”**
+  (person who controls multiple AIs)
+
+---
+
+## 📅 Biggest shift
+
+Not job loss… but:
+
+👉 **Skill compression**
+
+* What took 5 people → 1 skilled person + AI
+
+---
+
+# ⚙️ 3. Skills You NEED (High ROI only)
+
+Forget generic advice. This is what actually matters:
+
+---
+
+## 🧠 1. AI Tool Mastery (Non-negotiable)
+
+You should be fluent with:
+
+* ChatGPT
+* Midjourney
+* Runway ML
+* Figma
+
+👉 Not basic usage—**workflow integration**
+
+---
+
+## 🎨 2. UI/UX Thinking (This is your leverage)
+
+Most people:
+
+* design screens
+
+You should:
+
+* design **experiences + flows + behavior**
+
+Learn:
+
+* user psychology
+* interaction design
+* micro-interactions
+
+👉 AI can generate UI, but **not good UX logic**
+
+---
+
+## 💻 3. Frontend + Interaction Dev
+
+Stick with:
+
+* HTML / CSS / JS
+* Add:
+
+  * animations (GSAP, Framer Motion)
+  * AI integration (APIs)
+
+👉 Goal:
+**Make interactive AI-powered websites/apps**
+
+---
+
+## 🎬 4. AI + Animation Combo (Underrated skill)
+
+This is your unfair advantage.
+
+Use AI for:
+
+* storyboarding
+* motion generation
+* VFX ideas
+
+Then refine manually.
+
+👉 Result:
+**Faster + higher quality output than competitors**
+
+---
+
+## ⚡ 5. Automation Thinking
+
+Learn:
+
+* how to connect tools
+* how to remove manual work
+
+Example:
+
+* client input → AI → design → export → deliver
+
+👉 This is how freelancers scale income.
+
+---
+
+## 🧩 6. Problem-Solving > Tools
+
+Tools change fast.
+
+What stays:
+
+* thinking
+* structuring problems
+* building solutions
+
+---
+
+# 🚨 Brutal Truth (You need this)
+
+* AI won’t replace you
+* But someone using AI **will**
+
+---
+
+# 🧭 Simple Strategy for YOU
+
+If I had your profile, I’d do this:
+
+### Step 1
+
+Master:
+
+* UI/UX + Figma
+* AI tools (daily use)
+
+### Step 2
+
+Build:
+
+* AI-powered portfolio projects
+  (not static websites)
+
+### Step 3
+
+Position yourself as:
+👉 “AI-powered designer/developer”
+
+---
+
+# 🏁 Final Take
+
+The winners in next 5 years will be:
+
+👉 Not the best coders
+👉 Not the best designers
+
+But:
+
+👉 **People who combine skills + AI + execution speed**
+
+---
+
+If you want, I can go very practical and give you:
+
+* exact tools stack you should use
+* portfolio project ideas (that actually get internships)
+* freelancing strategy using AI
+
+Just tell me.
+
+
+
+
+
+
+
+
+You’re asking for the **full pipeline**—from raw data → trained ML model → deployed into a real product (web/app). I’ll walk you through this like a system design breakdown, not theory.
+
+---
+
+# 1. How an ML Model is Actually Trained (End-to-End)
+
+## Step 1: Data Collection
+
+You need **relevant, labeled data**.
+
+**Sources:**
+
+* Public datasets (Kaggle, UCI)
+* APIs (Twitter, weather, etc.)
+* Your own app logs / database
+* Sensors / scanners (like your EID project)
+
+**Example (your use case):**
+
+* Input: Image / barcode / text
+* Output: Extracted ID (label)
+
+---
+
+## Step 2: Data Preprocessing
+
+Raw data is useless without cleaning.
+
+**Tasks:**
+
+* Remove noise / missing values
+* Normalize (scale numbers)
+* Encode categorical data
+* Image resizing (for CV)
+* Tokenization (for NLP)
+
+**Python stack:**
+
+```python
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+```
+
+---
+
+## Step 3: Train-Test Split
+
+Avoid overfitting.
+
+```python
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+```
+
+---
+
+## Step 4: Model Selection
+
+Depends on problem type:
+
+| Problem        | Models                          |
+| -------------- | ------------------------------- |
+| Classification | Logistic, RandomForest, XGBoost |
+| Regression     | Linear, Ridge, Lasso            |
+| Image          | CNN (TensorFlow/PyTorch)        |
+| Text           | Transformers                    |
+
+---
+
+## Step 5: Training
+
+Model learns patterns.
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+```
+
+---
+
+## Step 6: Evaluation
+
+Check performance.
+
+```python
+from sklearn.metrics import accuracy_score
+
+pred = model.predict(X_test)
+print(accuracy_score(y_test, pred))
+```
+
+---
+
+## Step 7: Save Model
+
+You don’t retrain every time.
+
+```python
+import joblib
+joblib.dump(model, "model.pkl")
+```
+
+---
+
+# 2. How Model is Deployed (This is where most beginners struggle)
+
+You **DON’T embed ML directly in frontend**.
+
+You wrap it inside a backend API.
+
+---
+
+## Step 1: Create Backend API
+
+Use:
+
+* Flask (simple)
+* FastAPI (recommended)
+
+### Example:
+
+```python
+from fastapi import FastAPI
+import joblib
+
+app = FastAPI()
+model = joblib.load("model.pkl")
+
+@app.post("/predict")
+def predict(data: list):
+    result = model.predict([data])
+    return {"prediction": result.tolist()}
+```
+
+---
+
+## Step 2: Run Server
+
+```bash
+uvicorn app:app --reload
+```
+
+Now your ML model is live at:
+
+```
+http://localhost:8000/predict
+```
+
+---
+
+## Step 3: Connect Frontend (Website)
+
+Frontend sends request to backend.
+
+### Example (JavaScript):
+
+```javascript
+fetch("http://localhost:8000/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify([1,2,3,4])
+})
+.then(res => res.json())
+.then(data => console.log(data));
+```
+
+---
+
+# 3. How a Website is Built from Scratch
+
+Think in **3 layers**:
+
+---
+
+## 1. Frontend (UI Layer)
+
+What user sees.
+
+**Technologies:**
+
+* HTML → structure
+* CSS → styling
+* JavaScript → logic
+* React → dynamic UI
+
+---
+
+## 2. Backend (Server Layer)
+
+Brain of application.
+
+**Technologies:**
+
+* Node.js (JS backend)
+* Python (Flask / FastAPI)
+* Java (Spring Boot)
+
+**Functions:**
+
+* Handle requests
+* Run ML model
+* Authenticate users
+* Connect database
+
+---
+
+## 3. Database (Storage Layer)
+
+Stores:
+
+* Users
+* Data
+* Logs
+
+**Technologies:**
+
+* MySQL
+* MongoDB
+
+---
+
+# 4. Full Flow (Important – Understand This Clearly)
+
+Here’s what actually happens:
+
+```
+User → Website (React UI)
+     → API Call → Backend (FastAPI)
+     → ML Model Prediction
+     → Response → UI
+     → Display Result
+```
+
+---
+
+# 5. Deployment (Making it Live)
+
+## Backend Hosting:
+
+* AWS
+* Render
+* Railway
+
+## Frontend Hosting:
+
+* Vercel
+* Netlify
+
+---
+
+# 6. Mobile App Integration
+
+Same backend API is reused.
+
+**Technologies:**
+
+* React Native
+* Flutter
+
+App calls API same as website:
+
+```javascript
+fetch("https://api.com/predict")
+```
+
+---
+
+# 7. Real Example (Your EID Project)
+
+**Pipeline:**
+
+1. Scanner reads barcode
+2. Python extracts data
+3. OCR reads text (Tesseract)
+4. ML model verifies match
+5. Backend returns result
+6. UI shows PASS / FAIL
+
+---
+
+# 8. Tech Stack Summary (Use This)
+
+If you want a clean stack:
+
+* Frontend → React
+* Backend → FastAPI
+* ML → Scikit-learn / TensorFlow
+* DB → MongoDB
+* Deployment → AWS / Render
+
+---
+
+# 9. Biggest Mistakes Beginners Make
+
+* Trying to put ML in frontend ❌
+* Not separating backend and model ❌
+* Not saving model ❌
+* No real dataset ❌
+* Ignoring API layer ❌
+
+---
+
+# If you want next step (recommended for you)
+
+I can give you:
+
+* Full project structure (folders + files)
+* Complete working ML + website code
+* EID verification system architecture (exactly what you’re building)
+
+Just tell me:
+👉 “build full project”
