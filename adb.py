@@ -1,127 +1,159 @@
 import subprocess
-import time
 import tkinter as tk
-from tkinter import ttk, messagebox
-import easyocr
+from tkinter import ttk
 
 ADB = r"C:\Users\Chirag\Desktop\btp\eid\platform-tools-latest-windows\platform-tools\adb.exe"
 
-# --------- Fetch IMEI via ADB + OCR ----------
-def get_imei():
-    subprocess.call([ADB, "shell", "am", "start", "-a", "android.settings.DEVICE_INFO_SETTINGS"])
-    time.sleep(3)
+# ---------- HELPERS ----------
 
-    subprocess.call([ADB, "shell", "input", "swipe", "500", "1500", "500", "500"])
-    time.sleep(2)
+def adb(cmd):
+    try:
+        return subprocess.check_output(cmd, shell=True).decode().strip()
+    except:
+        return ""
 
-    subprocess.call([ADB, "shell", "input", "tap", "400", "1000"])
-    time.sleep(3)
+# ---------- FETCH FUNCTIONS ----------
 
-    subprocess.call([ADB, "shell", "screencap", "/sdcard/screen.png"])
-    subprocess.call([ADB, "pull", "/sdcard/screen.png"])
+def get_eid():
+    # Try multiple sources
+    eid = adb(f"{ADB} shell getprop gsm.sim.eid")
+    if len(eid) > 10:
+        return eid
 
-    reader = easyocr.Reader(['en'])
-    result = reader.readtext('screen.png')
+    eid = adb(f"{ADB} shell getprop persist.radio.eid")
+    if len(eid) > 10:
+        return eid
 
-    for item in result:
-        text = item[1]
-        if text.isdigit() and len(text) > 14:
-            return text
+    data = adb(f"{ADB} shell dumpsys isub")
+    for line in data.split("\n"):
+        if "eid" in line.lower():
+            return line.split("=")[-1].strip()
 
     return "Not Found"
 
-# --------- Compare ----------
-def compare_imei():
-    box_imei = entry_box.get().strip()
 
-    if not box_imei:
-        messagebox.showwarning("Input Error", "Enter Box IMEI")
-        return
+def get_serial():
+    return adb(f"{ADB} get-serialno")
 
-    phone_imei = get_imei()
-    label_phone_value.config(text=phone_imei)
 
-    if phone_imei == "Not Found":
-        result_label.config(text="❌ Unable to fetch", foreground="red")
-        return
+def get_imei():
+    out = adb(f"{ADB} shell service call iphonesubinfo 1")
+    digits = "".join([c for c in out if c.isdigit()])
+    return digits[:15] if len(digits) >= 15 else "Not Found"
 
-    if box_imei == phone_imei:
-        result_label.config(text="✅ PASS", foreground="green")
-    else:
-        result_label.config(text="❌ FAIL", foreground="red")
 
-# --------- Clear ----------
-def clear_fields():
-    entry_box.delete(0, tk.END)
-    label_phone_value.config(text="---")
-    result_label.config(text="")
+# ---------- GUI ----------
 
-# --------- Load Device Info (same window) ----------
-def load_device_info():
-    tree.delete(*tree.get_children())
-
-    try:
-        output = subprocess.check_output([ADB, "shell", "getprop"]).decode()
-
-        for line in output.split("\n"):
-            if "model" in line.lower():
-                tree.insert("", "end", values=("Model", line.split("]: [")[-1].replace("]", "")))
-            elif "version.release" in line.lower():
-                tree.insert("", "end", values=("Android Version", line.split("]: [")[-1].replace("]", "")))
-            elif "brand" in line.lower():
-                tree.insert("", "end", values=("Brand", line.split("]: [")[-1].replace("]", "")))
-
-    except:
-        tree.insert("", "end", values=("Error", "Device not connected"))
-
-# --------- GUI ----------
 root = tk.Tk()
-root.title("IMEI Verification System")
-root.geometry("550x500")
+root.title("Verification Tool")
+root.geometry("750x550")
+root.configure(bg="#7fa2bd")
 
-# --------- MENU ----------
-menu_bar = tk.Menu(root)
+# Inputs
+eid_in = tk.StringVar()
+sn_in = tk.StringVar()
+imei_in = tk.StringVar()
 
-file_menu = tk.Menu(menu_bar, tearoff=0)
-file_menu.add_command(label="Compare", command=lambda: None)
-file_menu.add_command(label="Device Info", command=load_device_info)
-file_menu.add_separator()
-file_menu.add_command(label="Exit", command=root.quit)
+# Device values
+eid_dev = tk.StringVar(value="---")
+sn_dev = tk.StringVar(value="---")
+imei_dev = tk.StringVar(value="---")
 
-menu_bar.add_cascade(label="File", menu=file_menu)
-root.config(menu=menu_bar)
+# Result
+result_var = tk.StringVar(value="PASS/FAIL")
 
-# --------- UI ----------
-title = ttk.Label(root, text="IMEI Verification Tool", font=("Segoe UI", 16, "bold"))
-title.pack(pady=10)
+# ---------- UI ----------
 
-frame = ttk.Frame(root, padding=15)
+tk.Label(root, text="verification tool", font=("Segoe UI", 22),
+         bg="#7fa2bd", fg="white").pack(pady=20)
+
+frame = tk.Frame(root, bg="#7fa2bd")
 frame.pack()
 
-ttk.Label(frame, text="Enter Box IMEI:").grid(row=0, column=0, pady=5)
-entry_box = ttk.Entry(frame, width=35)
-entry_box.grid(row=0, column=1, pady=5)
+def row(r, text, var_in, var_dev):
+    tk.Label(frame, text=text, font=("Segoe UI", 14),
+             bg="#7fa2bd").grid(row=r, column=0, padx=10, pady=10)
 
-ttk.Label(frame, text="Phone IMEI:").grid(row=1, column=0, pady=5)
-label_phone_value = ttk.Label(frame, text="---", foreground="blue")
-label_phone_value.grid(row=1, column=1, pady=5)
+    tk.Entry(frame, textvariable=var_in, width=25,
+             font=("Segoe UI", 13)).grid(row=r, column=1)
 
-btn_frame = ttk.Frame(frame)
-btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
+    tk.Label(frame, textvariable=var_dev,
+             font=("Segoe UI", 13),
+             bg="#7fa2bd").grid(row=r, column=2)
 
-ttk.Button(btn_frame, text="Fetch & Compare", command=compare_imei).grid(row=0, column=0, padx=10)
-ttk.Button(btn_frame, text="Clear", command=clear_fields).grid(row=0, column=1, padx=10)
+eid_row = row(0, "Scan box EID :", eid_in, eid_dev)
+sn_row = row(1, "Scan box S/N :", sn_in, sn_dev)
+imei_row = row(2, "Scan box IMEI :", imei_in, imei_dev)
 
-result_label = ttk.Label(root, text="", font=("Segoe UI", 14, "bold"))
-result_label.pack(pady=10)
+# ---------- LOGIC ----------
 
-# --------- Device Info Table (same window) ----------
-table_frame = ttk.Frame(root)
-table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+def compare():
+    eid = get_eid()
+    sn = get_serial()
+    imei = get_imei()
 
-tree = ttk.Treeview(table_frame, columns=("Key", "Value"), show="headings", height=6)
+    eid_dev.set(eid)
+    sn_dev.set(sn)
+    imei_dev.set(imei)
+
+    # FINAL LOGIC: ALL MUST MATCH
+    if (eid == eid_in.get().strip() and
+        sn == sn_in.get().strip() and
+        imei == imei_in.get().strip()):
+        
+        result_var.set("PASS")
+        result_label.config(fg="green")
+    else:
+        result_var.set("FAIL")
+        result_label.config(fg="red")
+
+
+def clear():
+    eid_in.set("")
+    sn_in.set("")
+    imei_in.set("")
+    eid_dev.set("---")
+    sn_dev.set("---")
+    imei_dev.set("---")
+    result_var.set("PASS/FAIL")
+
+# ---------- BUTTONS ----------
+
+btn_frame = tk.Frame(root, bg="#7fa2bd")
+btn_frame.pack(pady=20)
+
+tk.Button(btn_frame, text="Fetch & Compare",
+          bg="#7ed957", font=("Segoe UI", 14),
+          command=compare).grid(row=0, column=0, padx=20)
+
+tk.Button(btn_frame, text="Clear",
+          bg="lightgray", font=("Segoe UI", 14),
+          command=clear).grid(row=0, column=1)
+
+# ---------- RESULT ----------
+
+result_label = tk.Label(root, textvariable=result_var,
+                        font=("Segoe UI", 30),
+                        bg="#7fa2bd")
+result_label.pack(pady=20)
+
+# ---------- TABLE ----------
+
+tree = ttk.Treeview(root, columns=("Key", "Value"), show="headings")
 tree.heading("Key", text="Property")
 tree.heading("Value", text="Value")
-tree.pack(fill="both", expand=True)
+tree.pack(fill="both", expand=True, padx=10, pady=10)
+
+def load_info():
+    tree.delete(*tree.get_children())
+    data = [
+        ("Serial", get_serial()),
+        ("Model", adb(f"{ADB} shell getprop ro.product.model")),
+        ("Brand", adb(f"{ADB} shell getprop ro.product.brand")),
+    ]
+    for d in data:
+        tree.insert("", "end", values=d)
+
+tk.Button(root, text="Get Info", command=load_info).pack(pady=10)
 
 root.mainloop()
