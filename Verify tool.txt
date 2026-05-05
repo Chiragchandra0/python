@@ -1,0 +1,121 @@
+import subprocess
+import tkinter as tk
+from tkinter import ttk
+from PIL import Image, ImageTk
+
+# -------------------- ADB FUNCTIONS --------------------
+
+def run_adb_command(cmd):
+    try:
+        output = subprocess.check_output(cmd, shell=True).decode().strip()
+        return output
+    except:
+        return ""
+
+def get_device_info():
+    eid = run_adb_command("adb shell dumpsys telephony.registry | findstr /i eid")
+    imei = run_adb_command("adb shell service call iphonesubinfo 1")
+    serial = run_adb_command("adb get-serialno")
+
+    return {
+        "eid": eid.split("=")[-1].strip() if "=" in eid else eid,
+        "imei": ''.join(filter(str.isdigit, imei))[:15],
+        "serial": serial.strip()
+    }
+
+# -------------------- GUI --------------------
+
+root = tk.Tk()
+root.title("EID Verification System")
+root.geometry("750x400")
+root.configure(bg="#1e1e2e")
+
+style = ttk.Style()
+style.theme_use("clam")
+
+style.configure("TLabel", background="#1e1e2e", foreground="white", font=("Segoe UI", 11))
+style.configure("TEntry", font=("Segoe UI", 11))
+style.configure("TButton", font=("Segoe UI", 11), padding=6)
+
+# Icons
+tick_img = ImageTk.PhotoImage(Image.new("RGB", (20, 20), "green"))
+cross_img = ImageTk.PhotoImage(Image.new("RGB", (20, 20), "red"))
+
+# -------------------- VARIABLES --------------------
+
+eid_input = tk.StringVar()
+imei_input = tk.StringVar()
+serial_input = tk.StringVar()
+
+eid_device = tk.StringVar()
+imei_device = tk.StringVar()
+serial_device = tk.StringVar()
+
+# -------------------- LAYOUT --------------------
+
+frame = tk.Frame(root, bg="#1e1e2e")
+frame.pack(pady=20)
+
+headers = ["Field", "Entered", "Device", "Status"]
+for i, h in enumerate(headers):
+    ttk.Label(frame, text=h, font=("Segoe UI", 12, "bold")).grid(row=0, column=i, padx=10, pady=10)
+
+# Row creator
+def create_row(row, label, var_input, var_device):
+    ttk.Label(frame, text=label).grid(row=row, column=0)
+    ttk.Entry(frame, textvariable=var_input, width=25).grid(row=row, column=1)
+    ttk.Label(frame, textvariable=var_device, width=25).grid(row=row, column=2)
+    icon_label = tk.Label(frame, bg="#1e1e2e")
+    icon_label.grid(row=row, column=3)
+    return icon_label
+
+eid_icon = create_row(1, "EID", eid_input, eid_device)
+imei_icon = create_row(2, "IMEI", imei_input, imei_device)
+serial_icon = create_row(3, "Serial", serial_input, serial_device)
+
+# -------------------- LOGIC --------------------
+
+def compare_values():
+    result_all = True
+
+    def check(input_val, device_val, icon):
+        if input_val == device_val and input_val != "":
+            icon.config(image=tick_img)
+            return True
+        else:
+            icon.config(image=cross_img)
+            return False
+
+    r1 = check(eid_input.get(), eid_device.get(), eid_icon)
+    r2 = check(imei_input.get(), imei_device.get(), imei_icon)
+    r3 = check(serial_input.get(), serial_device.get(), serial_icon)
+
+    result_all = r1 and r2 and r3
+
+    if result_all:
+        result_label.config(text="PASS ✅", fg="green")
+    else:
+        result_label.config(text="FAIL ❌", fg="red")
+
+def fetch_device():
+    data = get_device_info()
+    eid_device.set(data["eid"])
+    imei_device.set(data["imei"])
+    serial_device.set(data["serial"])
+
+# -------------------- BUTTONS --------------------
+
+btn_frame = tk.Frame(root, bg="#1e1e2e")
+btn_frame.pack(pady=20)
+
+ttk.Button(btn_frame, text="Get Device Info", command=fetch_device).grid(row=0, column=0, padx=10)
+ttk.Button(btn_frame, text="Compare", command=compare_values).grid(row=0, column=1, padx=10)
+
+# -------------------- RESULT --------------------
+
+result_label = tk.Label(root, text="", font=("Segoe UI", 16, "bold"), bg="#1e1e2e")
+result_label.pack(pady=10)
+
+# -------------------- RUN --------------------
+
+root.mainloop()
