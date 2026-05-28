@@ -1,0 +1,289 @@
+================================================================================
+                  DEVICE VERIFICATION TOOL - ARCHITECTURE
+================================================================================
+
+PROJECT STRUCTURE
+─────────────────────────────────────────────────────────────────────────────
+
+verification_tool.py          [MAIN APPLICATION]
+│
+├─── File Menu
+│    └─ Exit
+│    └─ Excel Verification → Opens excel_verifier.ExcelVerifyWindow
+│
+├─── Window 1: Quick Verification (EID / S/N / IMEI)
+│    ├─ Input 1: Scan box EID:   [Entry] → [Fetched Value] ✗ ✓
+│    ├─ Input 2: Scan box S/N:   [Entry] → [Fetched Value] ✗ ✓
+│    ├─ Input 3: Scan box IMEI:  [Entry] → [Fetched Value] ✗ ✓
+│    │
+│    ├─ Buttons:
+│    │  ├─ Fetch & Compare (Green) → Compares all 3 fields
+│    │  └─ Clear (White)           → Clears everything
+│    │
+│    ├─ Result Display:
+│    │  ├─ "✅ PASS"  (Green) - All 3 fields match
+│    │  ├─ "❌ FAIL"  (Red)   - Any field doesn't match
+│    │  └─ "PASS/FAIL" (Black) - No comparison yet
+│    │
+│    └─ Info Table:
+│       ├─ Serial No
+│       ├─ Brand
+│       ├─ Model
+│       ├─ Android Version
+│       ├─ Battery
+│       ├─ WiFi MAC
+│       └─ Bluetooth MAC
+│       
+│       [Get Info] Button → Fetches and displays above properties
+
+
+excel_verifier.py             [SEPARATE VERIFICATION MODULE]
+│
+└─── Window 2: Excel-based Verification (Opened from File Menu)
+     │
+     ├─ Buttons:
+     │  ├─ 📁 Import Excel → File selector, loads Excel data
+     │  └─ ✓ Verify       → Compares device with Excel
+     │
+     ├─ Process:
+     │  1. User imports Excel file (device_database.xlsx)
+     │  2. User clicks Verify
+     │  3. System extracts Model from device via ADB
+     │  4. System finds matching row in Excel by Model
+     │  5. System extracts ALL other properties from device
+     │  6. System compares each field with Excel values
+     │  7. Shows results in table with ✓ or ✗
+     │
+     └─ Result Display:
+        ├─ Table with columns: Field | ADB Value | Excel Value | Match
+        ├─ Each row shows: [Field Name] | [ADB Extracted] | [Excel Value] | ✓ or ✗
+        └─ Summary: "✅ MATCH" (Green) or "❌ NO MATCH" (Red)
+
+
+================================================================================
+                            DATA FLOW DIAGRAMS
+================================================================================
+
+QUICK VERIFICATION (EID / S/N / IMEI):
+────────────────────────────────────────────────────────────────────────────
+
+User Input:  [EID: 123...]  [S/N: ABC...]  [IMEI: 456...]
+    │
+    └─→ [Fetch & Compare Button]
+        │
+        ├─→ fetch_eid()      → ADB extraction → "123..."
+        ├─→ fetch_serial()   → ADB extraction → "ABC..."
+        └─→ fetch_imei()     → ADB extraction → "456..."
+        │
+        ├─→ Compare: Input EID == ADB EID? → ✓/✗
+        ├─→ Compare: Input S/N == ADB S/N? → ✓/✗
+        └─→ Compare: Input IMEI == ADB IMEI? → ✓/✗
+        │
+        └─→ Final Result:
+            - All 3 match? → ✅ PASS
+            - Any mismatch? → ❌ FAIL
+
+
+EXCEL VERIFICATION:
+────────────────────────────────────────────────────────────────────────────
+
+Excel File (device_database.xlsx)
+│
+│   Model   | Brand  | Android Version | WiFi MAC | ... (10+ fields)
+│  ─────────┼────────┼─────────────────┼──────────┼──────
+│   Pixel 6 | Google | 13              | 12:34... | ...
+│ OnePlus 10| OnePlus| 12              | AA:BB... | ...
+│
+└─→ [Import Excel Button]
+    │
+    └─→ Load Excel data into memory
+        │
+        └─→ [Verify Button]
+            │
+            ├─→ fetch_properties() → Extract from device:
+            │   ├─ Model: "Pixel 6"
+            │   ├─ Brand: "Google"
+            │   ├─ Android Version: "13"
+            │   ├─ WiFi MAC: "12:34..."
+            │   └─ ... (all 10 fields)
+            │
+            ├─→ Find matching Excel row:
+            │   └─ Search for Model == "Pixel 6" in Excel
+            │
+            └─→ Compare each field:
+                │
+                Field 1: ADB="Pixel 6"    Excel="Pixel 6"      → ✓ MATCH
+                Field 2: ADB="Google"     Excel="Google"       → ✓ MATCH
+                Field 3: ADB="13"         Excel="13"           → ✓ MATCH
+                Field 4: ADB="12:34..."   Excel="12:34..."     → ✓ MATCH
+                ...
+                │
+                └─→ Final Result:
+                    All match? → ✅ MATCH
+                    Any different? → ❌ NO MATCH
+
+
+================================================================================
+                              ADB FUNCTIONS
+================================================================================
+
+fetch_eid()
+  ├─ Tries multiple properties in order:
+  │  ├─ gsm.sim.eid
+  │  ├─ persist.radio.eid0
+  │  └─ persist.radio.eid
+  └─ Returns: eUICC EID string or "Not Found"
+
+fetch_serial()
+  ├─ Gets device serial number via:
+  │  ├─ adb get-serialno
+  │  └─ getprop ro.serialno (fallback)
+  └─ Returns: Serial number string or "Not Found"
+
+fetch_imei()
+  ├─ Fast path: adb shell service call iphonesubinfo 1
+  ├─ Fallback: OCR-based extraction
+  │  ├─ Takes screenshot via adb
+  │  ├─ Navigates to device info
+  │  ├─ Uses pytesseract to OCR digits
+  │  └─ Extracts 15-digit IMEI
+  └─ Returns: IMEI string or "Not Found"
+
+fetch_properties()  [Excel verification]
+  ├─ Model          → adb shell getprop ro.product.model
+  ├─ Brand          → adb shell getprop ro.product.brand
+  ├─ Android Version → adb shell getprop ro.build.version.release
+  ├─ Base Version   → adb shell getprop ro.build.version.base_os
+  ├─ Build Number   → adb shell getprop ro.build.display.id
+  ├─ Security Patch → adb shell getprop ro.build.version.security_patch
+  ├─ Serial No      → adb get-serialno
+  ├─ WiFi MAC       → adb shell ip addr show wlan0
+  ├─ Bluetooth MAC  → adb shell settings get secure bluetooth_address
+  └─ Battery        → adb shell dumpsys battery (extract level)
+
+fetch_device_info()  [Info display]
+  └─ Same as above, returns list for table display
+
+
+================================================================================
+                          EXCEL FILE FORMAT
+================================================================================
+
+File: device_database.xlsx
+
+Required Columns (EXACT NAMES):
+  1. Model           [Primary key - used for matching]
+  2. Brand
+  3. Android Version
+  4. Base Version
+  5. Build Number
+  6. Security Patch
+  7. Serial No
+  8. WiFi MAC
+  9. Bluetooth MAC
+  10. Battery
+
+Example Data:
+┌──────────────┬────────┬──────────────────┬──────────────┬─────────────────┐
+│ Model        │ Brand  │ Android Version  │ WiFi MAC     │ Bluetooth MAC   │
+├──────────────┼────────┼──────────────────┼──────────────┼─────────────────┤
+│ Pixel 6      │ Google │ 13               │ 12:34:56:... │ 12:34:56:78:9A  │
+│ OnePlus 10   │ OnePlus│ 12               │ AA:BB:CC:... │ AA:BB:CC:DD:EE  │
+│ Galaxy S22   │Samsung │ 12               │ 00:11:22:... │ 00:11:22:33:44  │
+└──────────────┴────────┴──────────────────┴──────────────┴─────────────────┘
+
+IMPORTANT NOTES:
+  • Column names are CASE-SENSITIVE
+  • All 10 columns must be present
+  • Model is matched first (case-insensitive)
+  • Other comparisons are also case-insensitive
+  • Use template: device_database_template.xlsx
+
+
+================================================================================
+                              UI COLORS
+================================================================================
+
+Background:           #6B9DC2  (Steel Blue)
+Input Fields:         #D6D6D6  (Light Grey)
+Table Background:     #D6D6D6  (Light Grey)
+Button Green:         #5BC954  (Bright Green)
+Button White:         #FFFFFF  (White)
+Success Text:         #1A7A1A  (Dark Green)
+Failure Text:         #BB0000  (Dark Red)
+Icon Pass:            #1E8A1E  (Green checkmark)
+Icon Fail:            #CC2222  (Red X)
+Idle Icon:            #888888  (Grey)
+
+
+================================================================================
+                           THREADING MODEL
+================================================================================
+
+Main Thread:
+  └─ GUI Event Loop (tkinter mainloop)
+     │
+     └─ User clicks [Fetch & Compare] or [Verify]
+        │
+        └─ Create worker thread (daemon=True)
+           │
+           ├─ Worker: ADB calls (may take 10-30 seconds)
+           │  └─ root.after() → Update UI from worker
+           │
+           └─ Worker completes
+              └─ UI refreshed with results
+
+IMPORTANT:
+  • All ADB calls happen in background threads
+  • UI stays responsive during long operations
+  • Buttons disabled during processing to prevent double-clicks
+  • Threading prevents "Not Responding" message
+
+
+================================================================================
+                          ERROR HANDLING
+================================================================================
+
+fetch_eid() / fetch_serial() / fetch_imei()
+  ├─ ADB command fails? → Returns "Not Found"
+  └─ Timeout (12s)? → Returns "Not Found"
+
+Excel Import:
+  ├─ File not .xlsx/.xls? → Show error message
+  ├─ File locked in Excel? → Show error message
+  └─ Invalid format? → Show error message
+
+Excel Verification:
+  ├─ Excel not loaded? → Show warning
+  ├─ Device Model not in Excel? → Show warning
+  ├─ ADB fails? → Show error message
+  └─ Comparison still completes if some fields fail
+
+Device Connection:
+  ├─ Device offline? → ADB returns empty string → "Not Found"
+  ├─ USB Debugging off? → ADB fails → "Not Found"
+  └─ ADB path wrong? → All operations fail
+
+
+================================================================================
+                        DEPLOYMENT CHECKLIST
+================================================================================
+
+Before distribution:
+  ☐ Update ADB path in verification_tool.py
+  ☐ Update ADB path in excel_verifier.py
+  ☐ Verify Tesseract OCR installed (for IMEI)
+  ☐ Test on actual Android device
+  ☐ Create device_database.xlsx with real devices
+  ☐ Test Excel import/verify workflow
+  ☐ Ensure all dependencies installed: pip install -r requirements.txt
+
+Files to distribute:
+  ✓ verification_tool.py
+  ✓ excel_verifier.py
+  ✓ device_database_template.xlsx
+  ✓ README.md
+  ✓ QUICK_START.md
+
+
+================================================================================
