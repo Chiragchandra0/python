@@ -1,0 +1,61 @@
+Here's the clean comparison logic:
+
+```python
+import cv2
+import numpy as np
+from skimage.metrics import structural_similarity as ssim
+
+def compare_ui(ref_path, test_path, ignore_top_ratio=0.05):
+    """
+    Compare two UI screenshots.
+    ignore_top_ratio: fraction of screen height to ignore (status bar with clock etc.)
+    """
+    img1 = cv2.imread(ref_path)
+    img2 = cv2.imread(test_path)
+
+    # 1. Resize test to match reference size
+    img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+    # 2. Mask out dynamic region (status bar / clock)
+    cut = int(img1.shape[0] * ignore_top_ratio)
+    img1[:cut] = 0
+    img2[:cut] = 0
+
+    # 3. Convert to grayscale
+    g1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    g2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
+    # 4. SSIM — handles background color differences, not raw pixel match
+    score, diff = ssim(g1, g2, full=True)
+    diff = (diff * 255).astype(np.uint8)
+
+    # 5. Find changed regions
+    _, thresh = cv2.threshold(diff, 50, 255, cv2.THRESH_BINARY_INV)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # 6. Draw red boxes around differences on reference image
+    result = img1.copy()
+    diff_count = 0
+    for cnt in contours:
+        if cv2.contourArea(cnt) > 300:   # ignore tiny noise
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(result, (x, y), (x+w, y+h), (0, 0, 255), 2)
+            diff_count += 1
+
+    return {
+        "match": score >= 0.85,          # tune this threshold as needed
+        "similarity": round(score, 3),
+        "diff_regions": diff_count,
+        "diff_image": result             # BGR image with red boxes
+    }
+```
+
+**Why SSIM instead of raw pixel diff:**
+- Pixel diff fails if background shade is slightly different → SSIM compares *structure*, not exact values
+- SSIM is still sensitive to layout changes, missing buttons, shifted elements — exactly what you want
+
+**The `ignore_top_ratio=0.05`** zeros out the top 5% of both images before comparison, so clock/battery/signal never cause a mismatch. Pass `0.08` if your status bar is taller.
+
+**Tune just two numbers:**
+- `score >= 0.85` → lower if you want to allow more variation, raise for stricter match
+- `cv2.contourArea(cnt) > 300` → raise to ignore smaller differences
